@@ -1,16 +1,18 @@
-import User, { IUserDocument } from "@/models/user.model";
-import logger from "@/utils/logger";
 import { Types } from "mongoose";
+import User, { IUserDocument } from "@/models/user.model";
+import { NotFoundError } from "@/shared/errors/AppError";
+import { logger } from "@/shared/utils/logger";
 
 export interface CreateUserData {
   email: string;
   name: string;
   password: string;
-  role: "Customer" | "Admin";
+  role?: "user" | "admin";
 }
 
 export interface UpdateUserData {
   name?: string;
+  avatar?: string;
   isEmailVerified?: boolean;
 }
 
@@ -25,10 +27,10 @@ export class UserRepository {
     try {
       const user = new User(data);
       await user.save();
-      logger.info("User created", user._id);
+      logger.info({ userId: user._id }, "User created");
       return user;
     } catch (error) {
-      logger.error("Failed to create user", error, data);
+      logger.error({ err: error, data }, "Failed to create user");
       throw error;
     }
   }
@@ -104,10 +106,6 @@ export class UserRepository {
     }
 
     logger.info({ userId: id }, "User deleted");
-  }
-
-  async updateLastLogin(id: string | Types.ObjectId): Promise<void> {
-    await User.updateOne({ _id: id }, { $set: { lastLoginAt: new Date() } });
   }
 
   async countByRole(role: "user" | "admin"): Promise<number> {
