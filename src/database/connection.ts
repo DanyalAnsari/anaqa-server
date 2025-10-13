@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { config, isDevelopment } from "@config/index";
-import { logger } from "@utils/logger";
+import { logger } from "@/shared/utils/logger";
 
 class DatabaseConnection {
   private static instance: DatabaseConnection;
