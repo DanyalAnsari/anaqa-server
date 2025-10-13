@@ -9,13 +9,19 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.string().transform(Number).pipe(z.number().positive()).default(3000),
 
+<<<<<<< HEAD
   // MongoDB - required in production
   DB_URI: z.string().min(1, "MongoDB URI is required"),
   DB_NAME: z.string().optional(),
+=======
+  // Database
+  DATABASE_URL: z.string().url().optional(),
+>>>>>>> 3f38b03 (Resolve merge conflicts)
 
   // Redis
   REDIS_URL: z.string().url().optional(),
 
+<<<<<<< HEAD
   // JWT Secrets - CRITICAL: Use strong, random secrets in production
   JWT_ACCESS_SECRET: z.string().min(32, "JWT access secret must be at least 32 characters"),
   JWT_REFRESH_SECRET: z.string().min(32, "JWT refresh secret must be at least 32 characters"),
@@ -43,6 +49,8 @@ const envSchema = z.object({
   MAX_LOGIN_ATTEMPTS: z.string().transform(Number).default(5),
   LOCK_TIME: z.string().transform(Number).default(7200000),
 
+=======
+>>>>>>> 3f38b03 (Resolve merge conflicts)
   // Security
   CORS_ORIGIN: z.string().default("*"),
   RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default(900000),

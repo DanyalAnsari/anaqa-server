@@ -1,8 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 import { StatusCodes } from "http-status-codes";
 import { ZodError } from "zod";
+<<<<<<< HEAD
 import { AppError } from "@/shared/errors/AppError";
 import { logger } from "@/shared/utils/logger";
+=======
+import { AppError } from "@utils/errors/AppError";
+import { logger } from "@utils/logger";
+>>>>>>> 3f38b03 (Resolve merge conflicts)
 import { isProduction } from "@config/index";
 
 export const errorHandler = (err: Error, req: Request, res: Response, _next: NextFunction) => {
