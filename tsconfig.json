@@ -50,13 +50,14 @@
       "@services/*": [
         "services/*"
       ],
-<<<<<<< HEAD
+      "@models/*": [
+        "models/*"
+      ],
+      "@repositories/*": [
+        "repositories/*"
+      ],
       "@shared/*": [
         "shared/*"
-=======
-      "@utils/*": [
-        "utils/*"
->>>>>>> 3f38b03 (Resolve merge conflicts)
       ],
       "@types/*": [
         "types/*"
