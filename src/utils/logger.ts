@@ -1,50 +1,30 @@
-import config from '@/config/env.config';
-import winston from 'winston';
+import pino from "pino";
+import { config, isDevelopment } from "@config/index";
 
-const levels = {
-  error: 0,
-  warn: 1,
-  info: 2,
-  http: 3,
-  debug: 4,
-};
+// Create logger instance
+export const logger = pino({
+  level: config.LOG_LEVEL,
 
-const level = () => {
-  const env = config.env || 'development';
-  const isDevelopment = env === 'development';
-  return isDevelopment ? 'debug' : 'warn';
-};
+  // Development: pretty print; Production: JSON
+  transport: isDevelopment
+    ? {
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+          translateTime: "HH:MM:ss",
+          ignore: "pid,hostname",
+        },
+      }
+    : undefined,
 
-const colors = {
-  error: 'red',
-  warn: 'yellow',
-  info: 'green',
-  http: 'magenta',
-  debug: 'white',
-};
+  // Add context to all logs
+  base: {
+    env: config.NODE_ENV,
+  },
 
-winston.addColors(colors);
-
-const format = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
-  winston.format.colorize({ all: true }),
-  winston.format.printf((info) => `${info.timestamp} ${info.level}: ${info.message}`)
-);
-
-const transports = [
-  new winston.transports.Console(),
-  new winston.transports.File({
-    filename: 'logs/error.log',
-    level: 'error',
-  }),
-  new winston.transports.File({ filename: 'logs/all.log' }),
-];
-
-const logger = winston.createLogger({
-  level: level(),
-  levels,
-  format,
-  transports,
+  // Redact sensitive data
+  redact: {
+    paths: ["req.headers.authorization", "req.headers.cookie"],
+    remove: true,
+  },
 });
-
-export default logger;

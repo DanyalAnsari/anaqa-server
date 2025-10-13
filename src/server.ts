@@ -1,44 +1,54 @@
-import config from "./config/env.config";
-import app from "./app";
-import logger from "./utils/logger";
-import { connectDatabase } from "./config/database.config";
+import { createApp } from "./app";
+import { config, isProduction } from "@config/index";
+import { logger } from "@utils/logger";
 
-const startServer = async () => {
-  try {
-    const PORT = config.port;
-    // Connect to database
-    await connectDatabase();
+const app = createApp();
 
-    // Start server
+const server = app.listen(config.PORT, () => {
+  logger.info(
+    {
+      port: config.PORT,
+      env: config.NODE_ENV,
+      nodeVersion: process.version,
+    },
+    "🚀 Server started successfully"
+  );
+});
 
-    const server = app.listen(PORT, () => {
-      logger.info(`🚀 Server is running on port ${PORT}`);
-      logger.info(`📝 Environment: ${config.env}`);
-      logger.info(`🔗 URL: http://localhost:${config.port}`);
-    });
+// Graceful shutdown
+const gracefulShutdown = (signal: string) => {
+  logger.info({ signal }, "Received shutdown signal");
 
-    // Graceful shutdown
-    process.on("SIGTERM", () => {
-      logger.info("SIGTERM signal received: closing HTTP server");
-      server.close(() => {
-        logger.info("HTTP server closed");
-        process.exit(0);
-      });
-    });
+  server.close(() => {
+    logger.info("HTTP server closed");
 
-    process.on("unhandledRejection", (reason: Error) => {
-      logger.error("Unhandled Rejection:", reason);
-      throw reason;
-    });
+    // Close database connections, etc.
+    // await db.disconnect();
 
-    process.on("uncaughtException", (error: Error) => {
-      logger.error("Uncaught Exception:", error);
-      process.exit(1);
-    });
-  } catch (error) {
-    console.error("❌ Failed to start server:", error);
+    process.exit(0);
+  });
+
+  // Force shutdown after 10s
+  setTimeout(() => {
+    logger.error("Forced shutdown after timeout");
     process.exit(1);
-  }
+  }, 10000);
 };
 
-startServer();
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+// Handle unhandled rejections
+process.on("unhandledRejection", (reason: Error) => {
+  logger.error({ err: reason }, "Unhandled Rejection");
+  if (!isProduction) {
+    process.exit(1);
+  }
+});
+
+process.on("uncaughtException", (error: Error) => {
+  logger.error({ err: error }, "Uncaught Exception");
+  process.exit(1);
+});
+
+export default server;

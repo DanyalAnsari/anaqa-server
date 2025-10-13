@@ -1,57 +1,72 @@
 import express, { Application } from "express";
 import helmet from "helmet";
 import cors from "cors";
-import morgan from "morgan";
 import rateLimit from "express-rate-limit";
-import config from "./config/env.config";
-import { errorHandler } from "./middlewares/error.handler";
-import { requestLogger } from "./middlewares/req.logger";
-import router from "./routes";
+import { config } from "@config/index";
+import routes from "@routes/index";
+import { requestLogger } from "@middlewares/req.logger";
+import { errorHandler, notFoundHandler } from "./middlewares/error.handler";
 
-const app: Application = express();
+export const createApp = (): Application => {
+  const app = express();
 
-app.use(helmet());
+  // Security headers
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+        },
+      },
+    })
+  );
 
-app.use(
-  cors({
-    origin: config.corsOrigin,
-    credentials: true,
-  })
-);
+  // CORS
+  app.use(
+    cors({
+      origin: config.CORS_ORIGIN,
+      credentials: true,
+    })
+  );
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: "Too many requests from this IP, please try again later.",
-});
+  // Body parsing with size limits
+  app.use(express.json({ limit: "10mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-app.use("/api", limiter);
+  // Request logging
+  app.use(requestLogger);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
-// Logging
-if (config.env === "development") {
-  app.use(morgan("dev"));
-}
-app.use(requestLogger);
-
-app.use("/api", router);
-
-// Health check endpoint
-app.get("/health", (_req, res) => {
-  res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
-});
-
-// 404 handler
-app.use("/*SPLAT", (_req, res) => {
-  res.status(404).json({
-    status: "error",
-    message: "Route not found",
+  // Rate limiting
+  const limiter = rateLimit({
+    windowMs: config.RATE_LIMIT_WINDOW_MS,
+    max: config.RATE_LIMIT_MAX_REQUESTS,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: "Too many requests, please try again later",
+    skip: (req) => {
+      return req.path === "/health";
+    },
   });
-});
+  app.use("/api", limiter);
 
-// Error handling middleware (must be last)
-app.use(errorHandler);
+  // Health check
+  app.get("/health", (_req, res) => {
+    res.status(200).json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    });
+  });
 
-export default app;
+  // API routes
+  app.use("/api", routes);
+
+  // 404 handler
+  app.use(notFoundHandler);
+
+  // Global error handler
+  app.use(errorHandler);
+
+  return app;
+};
