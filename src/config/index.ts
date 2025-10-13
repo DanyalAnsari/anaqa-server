@@ -9,8 +9,9 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.string().transform(Number).pipe(z.number().positive()).default(3000),
 
-  // Database
-  DATABASE_URL: z.string().url().optional(),
+  // MongoDB - required in production
+  DB_URI: z.string().min(1, 'MongoDB URI is required'),
+  DB_NAME: z.string().optional(),
 
   // Redis
   REDIS_URL: z.string().url().optional(),

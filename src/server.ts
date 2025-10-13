@@ -1,54 +1,62 @@
-import { createApp } from "./app";
-import { config, isProduction } from "@config/index";
-import { logger } from "@utils/logger";
+import { createApp } from './app';
+import { config, isProduction } from '@config/index';
+import { logger } from '@utils/logger';
+import { db } from '@/database/connection';
 
-const app = createApp();
+async function startServer() {
+  try {
+    // Connect to database first
+    await db.connect();
 
-const server = app.listen(config.PORT, () => {
-  logger.info(
-    {
-      port: config.PORT,
-      env: config.NODE_ENV,
-      nodeVersion: process.version,
-    },
-    "🚀 Server started successfully"
-  );
-});
+    const app = createApp();
 
-// Graceful shutdown
-const gracefulShutdown = (signal: string) => {
-  logger.info({ signal }, "Received shutdown signal");
+    const server = app.listen(config.PORT, () => {
+      logger.info({
+        port: config.PORT,
+        env: config.NODE_ENV,
+        nodeVersion: process.version,
+      }, '🚀 Server started successfully');
+    });
 
-  server.close(() => {
-    logger.info("HTTP server closed");
+    // Graceful shutdown
+    const gracefulShutdown = async (signal: string) => {
+      logger.info({ signal }, 'Received shutdown signal');
+      
+      server.close(async () => {
+        logger.info('HTTP server closed');
+        
+        // Disconnect from database
+        await db.disconnect();
+        
+        process.exit(0);
+      });
 
-    // Close database connections, etc.
-    // await db.disconnect();
+      // Force shutdown after 10s
+      setTimeout(() => {
+        logger.error('Forced shutdown after timeout');
+        process.exit(1);
+      }, 10000);
+    };
 
-    process.exit(0);
-  });
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-  // Force shutdown after 10s
-  setTimeout(() => {
-    logger.error("Forced shutdown after timeout");
-    process.exit(1);
-  }, 10000);
-};
+    process.on('unhandledRejection', (reason: Error) => {
+      logger.error({ err: reason }, 'Unhandled Rejection');
+      if (!isProduction) {
+        process.exit(1);
+      }
+    });
 
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+    process.on('uncaughtException', (error: Error) => {
+      logger.error({ err: error }, 'Uncaught Exception');
+      process.exit(1);
+    });
 
-// Handle unhandled rejections
-process.on("unhandledRejection", (reason: Error) => {
-  logger.error({ err: reason }, "Unhandled Rejection");
-  if (!isProduction) {
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to start server');
     process.exit(1);
   }
-});
+}
 
-process.on("uncaughtException", (error: Error) => {
-  logger.error({ err: error }, "Uncaught Exception");
-  process.exit(1);
-});
-
-export default server;
+startServer();
