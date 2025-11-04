@@ -2,7 +2,7 @@ import express, { Application } from "express";
 import helmet from "helmet";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import { config } from "@config/index";
+import { config, isDevelopment } from "@config/index";
 import routes from "@routes/index";
 import { requestLogger } from "@middlewares/req.logger";
 import { errorHandler, notFoundHandler } from "./middlewares/error.handler";
@@ -13,20 +13,22 @@ export const createApp = (): Application => {
   // Security headers
   app.use(
     helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-        },
-      },
+      contentSecurityPolicy: isDevelopment
+        ? false
+        : {
+            directives: {
+              defaultSrc: ["'self'"],
+              styleSrc: ["'self'", "'unsafe-inline'"],
+            },
+          },
     })
   );
 
   // CORS
   app.use(
     cors({
-      origin: config.CORS_ORIGIN,
-      credentials: true,
+      origin: isDevelopment ? "*" : config.CORS_ORIGIN,
+      credentials: isDevelopment ? false : true,
     })
   );
 
