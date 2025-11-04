@@ -50,6 +50,12 @@
       "@services/*": [
         "services/*"
       ],
+      "@models/*": [
+        "models/*"
+      ],
+      "@repositories/*": [
+        "repositories/*"
+      ],
       "@shared/*": [
         "shared/*"
       ],

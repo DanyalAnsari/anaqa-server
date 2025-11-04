@@ -15,4 +15,7 @@ export const requestLogger = pinoHttp({
   customErrorMessage: (req, _res, err) => {
     return `${req.method} ${req.url} failed: ${err.message}`;
   },
+<<<<<<< HEAD
+});
+=======
 });
